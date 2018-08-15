@@ -37,14 +37,12 @@ router.get('/:txid', async function(req, res, next) {
     raw: true,
   });
   const confirmations = lastBlock.maxheight - transaction.Block.height + 1;
-  
+
   const txJson = transaction.toJSON();
   const txTemplate = Object.assign(txJson, {
     vins: txJson.Vouts.filter((vout) => vout.TransactionVouts.direction === 0),
     vouts: txJson.Vouts.filter((vout) => vout.TransactionVouts.direction === 1),
   });
-
-  console.log(transaction.Vouts.length);
 
   txTemplate.blockTime = transaction.Block.time.toUTCString();
 

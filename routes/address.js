@@ -15,7 +15,7 @@ router.get('/:address/:offset*?', async function(req, res, next) {
       model: models.Vout,
       include: {
         model: models.Transaction,
-        
+
       },
     },
   });
@@ -32,7 +32,6 @@ router.get('/:address/:offset*?', async function(req, res, next) {
 
   const nextpage = address.Vouts.length === 30 ? page + 1 : null;
   const prevpage = page > 1 ? page - 1 : null;
-  console.log(address.toJSON());
 
   res.render('address', {
     address: address.toJSON(),
