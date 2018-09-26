@@ -163,9 +163,9 @@ async function syncBlockchain() {
     }
   } catch (e) {
     console.log('=====', e);
-    process.exit(0);
+  } finally {
+    models.sequelize.close().then(() => process.exit(0));
   }
-  process.exit(0);
 }
 
 syncBlockchain();
