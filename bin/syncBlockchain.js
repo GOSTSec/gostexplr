@@ -1,4 +1,6 @@
 var http = require('http');
+const fs = require('fs-ext');
+
 var models = require('../models');
 var rpcConfig = require('../config/config')['rpc'];
 
@@ -150,19 +152,38 @@ async function getSyncedHeight() {
   return height;
 }
 
-async function syncBlockchain() {
-  let syncedHeight = await getSyncedHeight();
-  console.log('\x1b[36m%s\x1b[0m', 'syncedHeight is', syncedHeight);
-
-  let currentHeight = await getCurrentHeight();
-  console.log('\x1b[36m%s\x1b[0m', 'currentHeight is', currentHeight);
+async function acquireLock() {
+  let fd = fs.openSync('sync.lock', 'w');
   try {
+    fs.flockSync(fd, 'exnb');
+  } catch(ex) {
+    if (ex.code === 'EAGAIN') {
+      console.log('Synchronization is already running');
+    } else {
+      console.log('Could\'nt lock file', ex);
+    }
+    throw ex;
+  }
+}
+
+async function syncBlockchain() {
+
+  try {
+
+    await acquireLock();
+
+    let syncedHeight = await getSyncedHeight();
+    console.log('\x1b[36m%s\x1b[0m', 'syncedHeight is', syncedHeight);
+
+    let currentHeight = await getCurrentHeight();
+    console.log('\x1b[36m%s\x1b[0m', 'currentHeight is', currentHeight);
+
     while (syncedHeight < currentHeight) {
       syncedHeight = await syncNextBlock(syncedHeight);
       console.log('\x1b[36m%s\x1b[0m', 'syncedHeight: ', syncedHeight)
     }
   } catch (e) {
-    console.log('=====', e);
+    console.log(e);
   } finally {
     models.sequelize.close().then(() => process.exit(0));
   }
