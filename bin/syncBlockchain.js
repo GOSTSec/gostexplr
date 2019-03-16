@@ -1,10 +1,13 @@
 var http = require('http');
 const fs = require('fs-ext');
+const moment = require('moment');
 
 var models = require('../models');
 var rpcConfig = require('../config/config')['rpc'];
 
 const {username, password, hostname, port} = rpcConfig;
+
+let sync_sql = '';
 
 function MakeRPCRequest(postData) {
   return new Promise(function(resolve, reject) {
@@ -19,6 +22,7 @@ function MakeRPCRequest(postData) {
           'Content-Length': Buffer.byteLength(postData)
       }
     };
+
     var post_req = http.request(post_options, function(res) {
       res.setEncoding("utf8");
       let body = "";
@@ -29,6 +33,14 @@ function MakeRPCRequest(postData) {
         resolve(body);
       });
     });
+
+    post_req.on('error', function(err) {
+        if (err.code == 'ECONNREFUSED') {
+          console.log('\x1b[36m%s\x1b[0m', "Couldn't make request to wallet")
+        }
+        reject(err);
+    });
+
     post_req.write(postData);
     post_req.end();
   });
@@ -40,6 +52,7 @@ async function saveTransaction(txid, blockHeight) {
     params: [txid, 1],
     id: 1
   }));
+
   const tx = JSON.parse(res_tx)['result'];
   if (tx === null) {
     await models.Failure.create({
@@ -47,62 +60,129 @@ async function saveTransaction(txid, blockHeight) {
     });
     return;
   }
-  const transaction = await models.Transaction.create({
-    txid: tx.txid,
-    BlockHeight: blockHeight,
-  });
+
+  // const transaction = await models.Transaction.create({
+  //   txid: tx.txid,
+  //   BlockHeight: blockHeight,
+  // });
+  sync_sql += `
+          SELECT 1;
+        SELECT 1;
+        SELECT 1;
+        SELECT 1;
+        SELECT 1;
+        SELECT 1;
+        SELECT 1;
+        SELECT 1;
+    INSERT INTO Transactions (
+      txid,
+      BlockHeight
+    )
+    VALUES (
+      "${txid}",
+      ${blockHeight}
+    );
+    SET @txid = LAST_INSERT_ID();
+  `;
 
   // Loop over vouts
   for (var i = 0; i < tx.vout.length; i++) {
     const vout = tx.vout[i];
 
-    const m_vout = await models.Vout.create({
-      n: vout.n,
-      value: vout.value,
-    });
+    // const m_vout = await models.Vout.create({
+    //   n: vout.n,
+    //   value: vout.value,
+    // });
+    sync_sql += `
+      INSERT INTO Vouts (n, value)
+      VALUES ("${vout.n}", "${vout.value}");
+      SET @voutid= LAST_INSERT_ID();
+    `;
 
     // Loop over addresses in vout
     for (var y = 0; y < vout.scriptPubKey.addresses.length; y++) {
       const address = vout.scriptPubKey.addresses[y];
-      let m_address = await models.Address.findOne({
-        where: {
-          address,
-        },
-      });
-      if (m_address === null) {
-        m_address = await models.Address.create({
-          address,
-        });
-      }
-      await m_vout.addAddresses(m_address);
+      // let m_address = await models.Address.findOne({
+      //   where: {
+      //     address,
+      //   },
+      // });
+      // if (m_address === null) {
+      //   m_address = await models.Address.create({
+      //     address,
+      //   });
+      // }
+      sync_sql += `
+        INSERT INTO Addresses (address) VALUES ("${address}");
+        SET @addrid = (
+          SELECT IF(
+            ROW_COUNT() > 0,
+            LAST_INSERT_ID(),
+            (
+              SELECT id
+              FROM Addresses
+              WHERE address='Ga68WPtiA15sPyZzMXR9rUQZNz1AEpUaKW1'
+            )
+          )
+        );
+      `;
+      // await m_vout.addAddresses(m_address);
+      sync_sql += `
+        INSERT INTO AddressVouts (AddressId, VoutId)
+        VALUES (@addrid, @voutid);
+      `;
     }
-    await transaction.addVouts(m_vout, {through: {direction: 1}});
+    // await transaction.addVouts(m_vout, {through: {direction: 1}});
+    sync_sql += `
+      INSERT INTO TransactionVouts (TransactionId, VoutId, direction)
+      VALUES (@txid, @voutid, 1);
+    `;
   }
+
+  // Loop over vins
   for (var i = 0; i < tx.vin.length; i++) {
     const vin = tx.vin[i];
     if (vin.txid) {
-      const vout = await models.Vout.findAll({
-        include: {
-          model: models.Transaction,
-          where: {
-            txid: vin.txid,
-          },
-        },
-        where: {
-          n: vin.vout,
-        },
-      });
-      if (vout) {
-        await transaction.addVouts(vout[0], { through: { direction: 0, }, });
-      } else {
-        throw('Couldnt find vout for VIN');
-      }
+      // const vout = await models.Vout.findAll({
+      //   include: {
+      //     model: models.Transaction,
+      //     where: {
+      //       txid: vin.txid,
+      //     },
+      //   },
+      //   where: {
+      //     n: vin.vout,
+      //   },
+      // });
+      // if (vout) {
+      //   await transaction.addVouts(vout[0], { through: { direction: 0, }, });
+      // } else {
+      //   throw('Couldnt find vout for VIN');
+      // }
+      sync_sql += `
+        SET @vin = (
+          SELECT id
+          FROM Vouts
+          INNER JOIN TransactionVouts
+          ON Vouts.id=TransactionVouts.VoutId
+          INNER JOIN Transactions
+          ON Transactions.id=TransactionVouts.TransactionId
+          WHERE
+            TransactionVouts.direction=1 AND
+            Transactions.txid="${vin.txid}" AND
+            Vouts.n=${vin.vout}
+        );
+        INSERT INTO TransactionVouts (TransactionId, VoutId, direction)
+        VALUES (@txid, @vin, 0);
+      `
     }
   }
 }
 
 async function syncNextBlock(syncedHeight) {
   const height = syncedHeight + 1;
+  sync_sql = '';
+
   const res_hash = await MakeRPCRequest(JSON.stringify({
     method: 'getblockhash',
     params: [height],
@@ -115,20 +195,61 @@ async function syncNextBlock(syncedHeight) {
     id: 1
   }));
   const block = JSON.parse(res_block)['result'];
-  block.time = new Date(block.time * 1000);
-  await models.Block.create(block);
+
+  block.time = moment(1491163173000).format('YYYY-MM-DD HH:MM:SS');
+
+  // await models.Block.create(block);
+  sync_sql = `
+    SET autocommit = 0;
+    START TRANSACTION;
+    INSERT INTO Block (
+      hash,
+      height,
+      size,
+      version,
+      merkleroot,
+      time,
+      nonce,
+      bits,
+      difficulty,
+      previousblockhash,
+      nextblockhash
+    )
+    VALUES (
+      "${block.hash}",
+      "${block.height}",
+      "${block.size}",
+      "${block.version}",
+      "${block.merkleroot}",
+      "${block.time}",
+      "${block.nonce}",
+      "${block.bits}",
+      "${block.difficulty}",
+      "${block.previousblockhash}",
+      "${block.nextblockhash}"
+    );
+    `
   for (var i = 0; i < block.tx.length; i++) {
     await saveTransaction(block.tx[i], block.height);
   }
+
+
   if (block.height > 1) {
-    await models.Block.update({
-      nextblockhash: block.hash
-    },{
-      where: {
-        hash: block.previousblockhash
-      }
-    });
+    // await models.Block.update({
+    //   nextblockhash: block.hash
+    // },{
+    //   where: {
+    //     hash: block.previousblockhash
+    //   }
+    // });
+    sync_sql += `
+      UPDATE Block
+      SET nextblockhash="${block.previousblockhash}"
+      WHERE nextblockhash="${block.previousblockhash}";
+    `
   }
+  sync_sql += 'COMMIT;'
+  await models.sequelize.query(sync_sql);
   return height;
 }
 
@@ -138,7 +259,6 @@ async function getCurrentHeight() {
     params: [],
     id: 1
   }));
-
   return JSON.parse(result)['result'];
 }
 
@@ -148,6 +268,7 @@ async function getSyncedHeight() {
     order: [['height', 'DESC']],
     limit: 1
   });
+
   const height = result ? result.height : -1;
   return height;
 }
