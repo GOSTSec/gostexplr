@@ -7,7 +7,8 @@ var rpcConfig = require('../config/config')['rpc'];
 
 const {username, password, hostname, port} = rpcConfig;
 
-let sync_sql = '';
+let sync_sql = '',
+    coolstrs = [];
 
 function MakeRPCRequest(postData) {
   return new Promise(function(resolve, reject) {
@@ -188,7 +189,7 @@ async function syncNextBlock(syncedHeight) {
   }));
   const block = JSON.parse(res_block)['result'];
 
-  block.time = moment(1491163173000).format('YYYY-MM-DD HH:MM:SS');
+  block.time = moment(block.time*1000).format('YYYY-MM-DD HH:mm:ss');
 
   // await models.Block.create(block);
   sync_sql = `
@@ -221,8 +222,10 @@ async function syncNextBlock(syncedHeight) {
       "${block.nextblockhash}"
     );
     `
+  coolstrs = []
   for (var i = 0; i < block.tx.length; i++) {
     await saveTransaction(block.tx[i], block.height);
+    coolstrs.push(`${block.tx[i]} - ${block.time}`);
   }
 
 
@@ -242,6 +245,7 @@ async function syncNextBlock(syncedHeight) {
   }
   sync_sql += 'COMMIT;'
   await models.sequelize.query(sync_sql);
+
   return height;
 }
 
@@ -293,7 +297,13 @@ async function syncBlockchain() {
 
     while (syncedHeight < currentHeight) {
       syncedHeight = await syncNextBlock(syncedHeight);
-      console.log('\x1b[36m%s\x1b[0m', 'syncedHeight: ', syncedHeight)
+      if (coolstrs) {
+        for(str of coolstrs) {
+          console.log('\x1b[36m%s\x1b[0m', 'syncedHeight: ', syncedHeight, str)
+        }
+      } else {
+        console.log('\x1b[36m%s\x1b[0m', 'syncedHeight: ', syncedHeight)
+      }
     }
   } catch (e) {
     console.log(e);
