@@ -21,7 +21,7 @@
     "body-parser": "~1.18.2",
     "cookie-parser": "~1.4.3",
     "debug": "~2.6.9",
-    "express": "^4.16.3",
+    "express": "^4.16.4",
     "forever": "^0.15.3",
     "fs-ext": "^1.2.1",
     "moment": "^2.24.0",
@@ -29,7 +29,7 @@
     "mysql": "^2.15.0",
     "mysql2": "^1.5.1",
     "pug": "^2.0.0-rc.4",
-    "sequelize": "^4.32.2",
+    "sequelize": "^5.1.0",
     "sequelize-cli": "^3.2.0",
     "serve-favicon": "~2.4.5"
   }
