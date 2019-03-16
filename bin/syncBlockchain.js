@@ -105,7 +105,7 @@ async function saveTransaction(txid, blockHeight) {
       //   });
       // }
       sync_sql += `
-        INSERT INTO Addresses (address) VALUES ("${address}");
+        INSERT IGNORE INTO Addresses (address) VALUES ("${address}");
         SET @addrid = (
           SELECT IF(
             ROW_COUNT() > 0,
@@ -113,7 +113,7 @@ async function saveTransaction(txid, blockHeight) {
             (
               SELECT id
               FROM Addresses
-              WHERE address='Ga68WPtiA15sPyZzMXR9rUQZNz1AEpUaKW1'
+              WHERE address='${address}'
             )
           )
         );
@@ -153,7 +153,7 @@ async function saveTransaction(txid, blockHeight) {
       // }
       sync_sql += `
         SET @vin = (
-          SELECT id
+          SELECT Vouts.id
           FROM Vouts
           INNER JOIN TransactionVouts
           ON Vouts.id=TransactionVouts.VoutId
