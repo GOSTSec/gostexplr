@@ -66,14 +66,6 @@ async function saveTransaction(txid, blockHeight) {
   //   BlockHeight: blockHeight,
   // });
   sync_sql += `
-          SELECT 1;
-        SELECT 1;
-        SELECT 1;
-        SELECT 1;
-        SELECT 1;
-        SELECT 1;
-        SELECT 1;
-        SELECT 1;
     INSERT INTO Transactions (
       txid,
       BlockHeight
