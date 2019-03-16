@@ -293,13 +293,13 @@ async function syncBlockchain() {
     console.log('\x1b[36m%s\x1b[0m', 'syncedHeight is', syncedHeight);
 
     let currentHeight = await getCurrentHeight();
-    console.log('\x1b[36m%s\x1b[0m', 'currentHeight is', currentHeight);
+    console.log('\x1b[34m%s\x1b[0m', 'currentHeight is', currentHeight);
 
     while (syncedHeight < currentHeight) {
       syncedHeight = await syncNextBlock(syncedHeight);
       if (coolstrs) {
         for(str of coolstrs) {
-          console.log('\x1b[36m%s\x1b[0m', 'syncedHeight: ', syncedHeight, str)
+          console.log('\x1b[36m%s\x1b[0m', `syncedHeight: ${syncedHeight}/${currentHeight}`,  str)
         }
       } else {
         console.log('\x1b[36m%s\x1b[0m', 'syncedHeight: ', syncedHeight)
