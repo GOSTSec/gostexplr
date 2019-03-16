@@ -7,6 +7,9 @@ var rpcConfig = require('../config/config')['rpc'];
 
 const {username, password, hostname, port} = rpcConfig;
 
+const keepAliveAgent = new http.Agent({ keepAlive: true });
+
+
 let sync_sql = '',
     coolstrs = [];
 
@@ -18,6 +21,7 @@ function MakeRPCRequest(postData) {
       auth: `${username}:${password}`,
       path: '/',
       method: 'POST',
+      agent: keepAliveAgent,
       headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Content-Length': Buffer.byteLength(postData)
