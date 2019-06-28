@@ -6,6 +6,9 @@
       "database": "gedb",
       "host": "127.0.0.1",
       "dialect": "mysql",
+      "dialectOptions": {
+        "multipleStatements": true
+      },
       "logging": false
     },
     "test": {
@@ -13,7 +16,10 @@
       "password": null,
       "database": "database_test",
       "host": "127.0.0.1",
-      "dialect": "mysql"
+      "dialect": "mysql",
+      "dialectOptions": {
+        "multipleStatements": true
+      }
     },
     "production": {
       "username": "geuser",
@@ -21,6 +27,9 @@
       "database": "gedb",
       "host": "127.0.0.1",
       "dialect": "mysql",
+      "dialectOptions": {
+        "multipleStatements": true
+      },
       "logging": false
     }
   },
