@@ -14,7 +14,7 @@ module.exports = (sequelize, DataTypes) => {
   const AddressVout = sequelize.define('AddressVout', {}, { timestamps: false });
 
   Address.associate = function (models) {
-  	models.Address.belongsToMany(models.Vout, { through: 'AddressVout' });
+    models.Address.belongsToMany(models.Vout, { through: 'AddressVout' });
   };
 
   return Address;

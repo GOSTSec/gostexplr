@@ -11,7 +11,8 @@ const keepAliveAgent = new http.Agent({ keepAlive: true });
 
 
 let sync_sql = '',
-    coolstrs = [];
+    coolstrs = [],
+    starttime = 0;
 
 function MakeRPCRequest(postData) {
   return new Promise(function(resolve, reject) {
@@ -82,7 +83,7 @@ async function saveTransaction(txid, blockHeight) {
     SET @txid = LAST_INSERT_ID();
   `;
 
-  // Loop over vouts
+  // Loop over vout's
   for (var i = 0; i < tx.vout.length; i++) {
     const vout = tx.vout[i];
 
@@ -136,7 +137,7 @@ async function saveTransaction(txid, blockHeight) {
     `;
   }
 
-  // Loop over vins
+  // Loop over vin's
   for (var i = 0; i < tx.vin.length; i++) {
     const vin = tx.vin[i];
     if (vin.txid) {
@@ -186,12 +187,20 @@ async function syncNextBlock(syncedHeight) {
     id: 1
   }));
   const blockHash = JSON.parse(res_hash)['result'];
+
   const res_block = await MakeRPCRequest(JSON.stringify({
     method: 'getblock',
     params: [blockHash],
     id: 1
   }));
   const block = JSON.parse(res_block)['result'];
+
+  const res_blockhr = await MakeRPCRequest(JSON.stringify({
+    method: 'getnetworkhashps',
+    params: [120, height],
+    id: 1
+  }));
+  block.hashrate = JSON.parse(res_blockhr)['result'];
 
   block.time = moment(block.time*1000).format('YYYY-MM-DD HH:mm:ss');
 
@@ -209,8 +218,8 @@ async function syncNextBlock(syncedHeight) {
       nonce,
       bits,
       difficulty,
-      previousblockhash,
-      nextblockhash
+      hashrate,
+      previousblockhash
     )
     VALUES (
       "${block.hash}",
@@ -222,8 +231,8 @@ async function syncNextBlock(syncedHeight) {
       "${block.nonce}",
       "${block.bits}",
       "${block.difficulty}",
-      "${block.previousblockhash}",
-      "${block.nextblockhash}"
+      "${block.hashrate}",
+      "${block.previousblockhash}"
     );
     `
   coolstrs = []
@@ -243,8 +252,8 @@ async function syncNextBlock(syncedHeight) {
     // });
     sync_sql += `
       UPDATE Block
-      SET nextblockhash="${block.previousblockhash}"
-      WHERE nextblockhash="${block.previousblockhash}";
+      SET nextblockhash="${block.hash}"
+      WHERE hash="${block.previousblockhash}";
     `
   }
   sync_sql += 'COMMIT;'
@@ -283,7 +292,7 @@ async function acquireLock() {
     } else {
       console.log('Could\'nt lock file', ex);
     }
-    throw ex;
+    process.exit(0);
   }
 }
 
@@ -300,10 +309,11 @@ async function syncBlockchain() {
     console.log('\x1b[34m%s\x1b[0m', 'currentHeight is', currentHeight);
 
     while (syncedHeight < currentHeight) {
+      starttime = new Date().getTime();
       syncedHeight = await syncNextBlock(syncedHeight);
       if (coolstrs) {
         for(str of coolstrs) {
-          console.log('\x1b[36m%s\x1b[0m', `syncedHeight: ${syncedHeight}/${currentHeight}`,  str)
+          console.log('\x1b[36m%s\x1b[0m', `syncedHeight: ${syncedHeight}/${currentHeight}`,  str, ' [', new Date().getTime() - starttime, 'ms ]')
         }
       } else {
         console.log('\x1b[36m%s\x1b[0m', 'syncedHeight: ', syncedHeight)
@@ -312,7 +322,8 @@ async function syncBlockchain() {
   } catch (e) {
     console.log(e);
   } finally {
-    models.sequelize.close().then(() => process.exit(0));
+    await models.sequelize.close();
+    process.exit(0);
   }
 }
 
