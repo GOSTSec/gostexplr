@@ -6,9 +6,13 @@ var router = express.Router();
 router.get('/', async function(req, res, next) {
 
   const blocks = await models.Block.findAll({
-    attributes: ['height', 'hash'],
+    attributes: ['height', 'hash', 'time', 'difficulty', 'hashrate'],
     order: [['height', 'DESC']],
-    limit: 30,
+    limit: 50,
+  });
+  blocks.forEach(function(arrayItem) {
+    arrayItem.ago = arrayItem.time.toUTCString().substring(5);
+    arrayItem.difficulty = arrayItem.difficulty.toFixed(8);
   });
   res.render('index', {
     blocks,

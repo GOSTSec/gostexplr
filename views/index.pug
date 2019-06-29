@@ -1,11 +1,25 @@
 extends layout
 
 block content
-  h3 Last 30 blocks
+  h3 Last 50 blocks
 
   table
+    tr
+      td
+        b Height
+      td
+        b Time
+      td
+        b Difficulty
+      td
+        b Hashrate
+      td
+        b Hash
     each block in blocks
       tr
-        td #{block.height}
+        td #{block.height} -
+        td #{block.ago} -
+        td #{block.difficulty} -
+        td #{block.hashrate} -
         td
           a(href='/block/' + block.hash + '/') #{block.hash}
