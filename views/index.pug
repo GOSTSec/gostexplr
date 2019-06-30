@@ -17,9 +17,9 @@ block content
         b Hash
     each block in blocks
       tr
-        td #{block.height} -
-        td #{block.ago} -
-        td #{block.difficulty} -
-        td #{block.hashrate} -
+        td #{block.height}
+        td #{block.ago}
+        td #{block.difficulty}
+        td #{block.hashrate}
         td
           a(href='/block/' + block.hash + '/') #{block.hash}
