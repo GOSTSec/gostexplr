@@ -24,7 +24,7 @@ router.get('/', async function(req, res, next) {
   });
   blocks.forEach(function(arrayItem) {
     arrayItem.ago = arrayItem.time.toUTCString().substring(5);
-    arrayItem.difficulty = arrayItem.difficulty.toFixed(8);
+    arrayItem.difficulty = parseFloat(arrayItem.difficulty).toFixed(8);
     arrayItem.hashrate = formatRate(arrayItem.hashrate, 4);
   });
   res.render('index', {
