@@ -28,6 +28,8 @@ router.get('/:hash', async function(req, res, next) {
   const block = blockInstance.toJSON();
   block.confirmations = lastBlock.maxheight - block.height + 1;
   block.time = block.time.toUTCString();
+  block.difficulty = block.difficulty.toFixed(8);
+  block.hashrate = block.hashrate.toLocaleString() + " H/s";
   res.render('block', {
     block,
   });
