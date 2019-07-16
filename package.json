@@ -7,8 +7,7 @@
     "start": "node ./bin/www",
     "initdb": "node ./bin/initdb.js",
     "createUserAndDb": "node ./bin/createUserAndDb.js",
-    "syncBlockchain": "node ./bin/syncBlockchain.js",
-    "addN": "node ./bin/addNToVouts.js"
+    "sync": "node ./bin/syncBlockchain.js"
   },
   "repository": {
     "type": "git",

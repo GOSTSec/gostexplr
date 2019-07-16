@@ -4,6 +4,7 @@ const moment = require('moment');
 
 var models = require('../models');
 var rpcConfig = require('../config/config')['rpc'];
+var HeightOffset = require('../config/config')['syncHeightOffset'] || 0;
 
 const {username, password, hostname, port} = rpcConfig;
 
@@ -67,10 +68,6 @@ async function saveTransaction(txid, blockHeight) {
     return;
   }
 
-  // const transaction = await models.Transaction.create({
-  //   txid: tx.txid,
-  //   BlockHeight: blockHeight,
-  // });
   sync_sql += `
     INSERT INTO Transactions (
       txid,
@@ -87,10 +84,6 @@ async function saveTransaction(txid, blockHeight) {
   for (var i = 0; i < tx.vout.length; i++) {
     const vout = tx.vout[i];
 
-    // const m_vout = await models.Vout.create({
-    //   n: vout.n,
-    //   value: vout.value,
-    // });
     sync_sql += `
       INSERT INTO Vouts (n, value)
       VALUES ("${vout.n}", "${vout.value}");
@@ -100,16 +93,7 @@ async function saveTransaction(txid, blockHeight) {
     // Loop over addresses in vout
     for (var y = 0; y < vout.scriptPubKey.addresses.length; y++) {
       const address = vout.scriptPubKey.addresses[y];
-      // let m_address = await models.Address.findOne({
-      //   where: {
-      //     address,
-      //   },
-      // });
-      // if (m_address === null) {
-      //   m_address = await models.Address.create({
-      //     address,
-      //   });
-      // }
+
       sync_sql += `
         INSERT IGNORE INTO Addresses (address) VALUES ("${address}");
         SET @addrid = (
@@ -124,13 +108,13 @@ async function saveTransaction(txid, blockHeight) {
           )
         );
       `;
-      // await m_vout.addAddresses(m_address);
+
       sync_sql += `
         INSERT INTO AddressVouts (AddressId, VoutId)
         VALUES (@addrid, @voutid);
       `;
     }
-    // await transaction.addVouts(m_vout, {through: {direction: 1}});
+
     sync_sql += `
       INSERT INTO TransactionVouts (TransactionId, VoutId, direction)
       VALUES (@txid, @voutid, 1);
@@ -141,22 +125,7 @@ async function saveTransaction(txid, blockHeight) {
   for (var i = 0; i < tx.vin.length; i++) {
     const vin = tx.vin[i];
     if (vin.txid) {
-      // const vout = await models.Vout.findAll({
-      //   include: {
-      //     model: models.Transaction,
-      //     where: {
-      //       txid: vin.txid,
-      //     },
-      //   },
-      //   where: {
-      //     n: vin.vout,
-      //   },
-      // });
-      // if (vout) {
-      //   await transaction.addVouts(vout[0], { through: { direction: 0, }, });
-      // } else {
-      //   throw('Couldnt find vout for VIN');
-      // }
+
       sync_sql += `
         SET @vin = (
           SELECT Vouts.id
@@ -204,7 +173,6 @@ async function syncNextBlock(syncedHeight) {
 
   block.time = moment(block.time*1000).format('YYYY-MM-DD HH:mm:ss');
 
-  // await models.Block.create(block);
   sync_sql = `
     SET autocommit = 0;
     START TRANSACTION;
@@ -243,13 +211,7 @@ async function syncNextBlock(syncedHeight) {
 
 
   if (block.height > 1) {
-    // await models.Block.update({
-    //   nextblockhash: block.hash
-    // },{
-    //   where: {
-    //     hash: block.previousblockhash
-    //   }
-    // });
+
     sync_sql += `
       UPDATE Block
       SET nextblockhash="${block.hash}"
@@ -268,7 +230,7 @@ async function getCurrentHeight() {
     params: [],
     id: 1
   }));
-  return JSON.parse(result)['result'];
+  return JSON.parse(result)['result'] - HeightOffset;
 }
 
 async function getSyncedHeight() {
@@ -297,9 +259,7 @@ async function acquireLock() {
 }
 
 async function syncBlockchain() {
-
   try {
-
     await acquireLock();
 
     let syncedHeight = await getSyncedHeight();
