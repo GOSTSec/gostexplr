@@ -39,6 +39,7 @@
     "hostname": "127.0.0.1",
     "port": 9376
   },
+  "syncHeightOffset": 0,
   "env": "production",
   "port": 3000
 }
