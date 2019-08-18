@@ -171,7 +171,7 @@ async function syncNextBlock(syncedHeight) {
   }));
   block.hashrate = JSON.parse(res_blockhr)['result'];
 
-  block.time = moment(block.time*1000).format('YYYY-MM-DD HH:mm:ss');
+  block.time = moment(block.time*1000).utc().format('YYYY-MM-DD HH:mm:ss Z');
 
   sync_sql = `
     SET autocommit = 0;
