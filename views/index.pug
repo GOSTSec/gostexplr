@@ -1,7 +1,7 @@
 extends layout
 
 block content
-  h3 Last 50 blocks
+  h3 Last 50 blocks (with delay for #{HeightOffset} blocks)
 
   table
     tr
@@ -22,4 +22,4 @@ block content
         td #{block.difficulty}
         td #{block.hashrate}
         td
-          a(href='/block/' + block.hash + '/') #{block.hash}
+          a(href='/block/' + block.hash + '/') #{block.hash_short}
