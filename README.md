@@ -3,7 +3,7 @@ Copy config
 config/config.json.example -> config/config.json
 </pre>
 
-Use mysql
+Use Mariadb
 <pre>
 cd gostexplr
 npm i
