@@ -35,8 +35,12 @@ function formatRate(bytes, decimals = 2) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
-function getPagination(count, page) {
-  const pagesCount = count > BLOCKS_PER_PAGE ? Math.ceil(count / BLOCKS_PER_PAGE) : 0;
+function getMaxPage(blockCount) {
+  return blockCount > BLOCKS_PER_PAGE ? Math.ceil(blockCount / BLOCKS_PER_PAGE) : 0;
+}
+
+function getPagination(blockCount, page) {
+  const pagesCount = getMaxPage(blockCount)
   let pagination = null;
   if (pagesCount) {
     pagination = {
@@ -67,10 +71,21 @@ function getPagination(count, page) {
 }
 
 /* GET home page. */
-router.get('/:offset*?', async function(req, res, next) {
+router.get('/:page(\\d+)?', async function(req, res, next) {
 
-  const paramPage = parseInt(req.params.offset);
-  const page = isNaN(paramPage) || paramPage < 1 ? 1 : paramPage;
+  const paramPage = parseInt(req.params.page);
+  const blockCount = await models.Block.count();
+  const maxPage = getMaxPage(blockCount)
+
+  let page = isNaN(paramPage) || paramPage < 1 ? 1 : paramPage;
+  if (page > maxPage) {
+    page = maxPage;
+    res.redirect(`/${page}/`);
+    return;
+  }
+
+  const pagination = getPagination(blockCount, page);
+
   const offset = BLOCKS_PER_PAGE * (page - 1);
 
   const blocks = await models.Block.findAll({
@@ -79,9 +94,6 @@ router.get('/:offset*?', async function(req, res, next) {
     limit: BLOCKS_PER_PAGE,
     offset,
   });
-
-  const count = await models.Block.count();
-  const pagination = getPagination(count, page);
 
   blocks.forEach((arrayItem) => {
     arrayItem.ago = arrayItem.time.toUTCString().substring(5);
