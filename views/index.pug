@@ -23,3 +23,22 @@ block content
         td #{block.hashrate}
         td
           a(href='/block/' + block.hash + '/') #{block.hash_short}
+
+block pagination
+  if pagination
+    if pagination.left
+      a.paginator(href='/' + pagination.left + '/') #{pagination.left}
+      span.paginator ...
+
+
+    - var n = pagination.range[0]
+    - var m = pagination.range[1]
+    while n <= m
+      if n != page
+        a.paginator(href='/' + n + '/') #{n++}
+      else
+        span.paginator #{n++}
+
+    if pagination.right
+      span.paginator ...
+      a.paginator(href='/' + pagination.right + '/') #{pagination.right}

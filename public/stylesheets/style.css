@@ -85,3 +85,13 @@ div.pagination {
   overflow: hidden;
   margin-top: .5em;
 }
+
+div.pagination-wrapper {
+  margin-top: .5em;
+  text-align: center;
+}
+
+div.pagination-wrapper .paginator {
+  margin-left: .5em;
+  display: inline-block;
+}
