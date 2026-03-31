@@ -9,6 +9,13 @@
       "dialectOptions": {
         "multipleStatements": true
       },
+      "pool": {
+      "max": 5,
+      "min": 0,
+      "idle": 10000,
+      "acquire": 30000,
+      "evict": 10000
+      },
       "logging": false
     },
     "test": {
@@ -29,6 +36,13 @@
       "dialect": "mysql",
       "dialectOptions": {
         "multipleStatements": true
+      },
+      "pool": {
+      "max": 5,
+      "min": 0,
+      "idle": 10000,
+      "acquire": 30000,
+      "evict": 10000
       },
       "logging": false
     }
